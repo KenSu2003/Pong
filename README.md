@@ -1,2 +1,2 @@
 # Pong
-Pong written in assembly for ECE 550 check point 6.
+Pong written in assembly for ECE 550 checkpoint 6.
