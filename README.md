@@ -104,3 +104,7 @@ The following addresses are reserved for Memory Mapped I/O:
 0x3004          : VGA Paddle Control (Write Only).
 
 ================================================================================
+
+5. Citations
+--------------------------------------------------------------------------------
+https://github.com/DennisCMoes/Pong/blob/main/src/game.asm
