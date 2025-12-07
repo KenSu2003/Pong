@@ -1,0 +1,5 @@
+Snake: https://github.com/guifelippe/SnakeGame
+Tetris: https://github.com/mkh2097/Tetris-Assembly-8086
+Pong: https://github.com/thlorenz/pong.asm
+Flappy bird: https://github.com/gssetia/Flappybird-Assembly
+Sokoban: https://github.com/Silverster98/Sokoban
