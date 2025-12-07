@@ -1,0 +1,14 @@
+---
+:id: 371189107
+:submitters:
+- :name: Austin Gregory
+  :email: austin.gregory@duke.edu
+- :name: Tianji Li
+  :email: tianji.li@duke.edu
+:created_at: !ruby/object:ActiveSupport::TimeWithZone
+  utc: 2025-11-19 07:03:07.618944000 Z
+  zone: !ruby/object:ActiveSupport::TimeZone
+    name: America/Los_Angeles
+  time: 2025-11-18 23:03:07.618944000 Z
+:status: processed
+:score: 100.0
