@@ -1,7 +1,7 @@
 module processor(clock, reset, /*ps2_key_pressed, ps2_out, lcd_write, lcd_data,*/ dmem_data_in, dmem_address);
 
-	input 			clock, reset/*, ps2_key_pressed*/;
-	//input 	[7:0]	ps2_out;
+	input 			clock, reset, ps2_key_pressed;
+	input 	[7:0]	ps2_out;
 	
 	//output 			lcd_write;
 	//output 	[31:0] 	lcd_data;
@@ -27,14 +27,14 @@ module processor(clock, reset, /*ps2_key_pressed, ps2_out, lcd_write, lcd_data,*
 	dmem mydmem(	.address	(dmem_address),
 					.clock		(clock),
 					.data		(debug_data),
-					.wren		(1'b1) //,	//need to fix this!
-					//.q			(wherever_you_want) // change where output q goes...
+					.wren		(1'b1)
+					.q			(q_dmem)
 	);
 	
 	imem myimem(	.address 	(dmem_data_in),
 					.clken		(1'b1),
-					.clock		(clock) //,
-					//.q			(wherever_you_want) // change where output q goes...
+					.clock		(clock),
+					.q ()			
 	); 
 	
 endmodule
