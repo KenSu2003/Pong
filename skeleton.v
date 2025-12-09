@@ -60,7 +60,8 @@ module skeleton(resetn,
 	
 	// Clock Divider (50MHz -> 10MHz)
 	pll div(CLOCK_50,inclock);
-	assign clock = CLOCK_50; // Use 50MHz for VGA compatibility, or 'inclock' if your processor is slow
+	// assign clock = CLOCK_50; // Use 50MHz for VGA compatibility, or 'inclock' if your processor is slow
+	assign clock = inclock;
 	
 	// ——————————————————————————————————————————————————————————————————————
 	// 1. MEMORY INSTANTIATION (External to Processor)
