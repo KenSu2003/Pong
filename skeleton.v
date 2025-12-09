@@ -185,6 +185,7 @@ module skeleton(resetn,
 	Hexadecimal_To_Seven_Segment hex8(4'b0, seg8);
 	
 	// Show key press on LEDs
-	assign leds = ps2_out;
+	// assign leds = ps2_out;
+	assign leds = debug_data_in[7:0];
 	
 endmodule
