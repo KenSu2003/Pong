@@ -92,8 +92,9 @@ always @(posedge iVGA_CLK) begin
             else                 ball_y <= ball_y - BALL_SPEED;
 
             // COLLISIONS
-            if (ball_y <= 5) ball_dir_y <= 1; 
-            if (ball_y >= 475) ball_dir_y <= 0; 
+            // Fix Y-Underflow bug here too (If Y wraps to 1023, treat as Top hit)
+            if (ball_y <= 5 || ball_y > 1000) ball_dir_y <= 1; 
+            else if (ball_y >= 475) ball_dir_y <= 0; 
 
             // Left Paddle Hit
             if (ball_x <= 30 && ball_x >= 20) begin
@@ -106,14 +107,18 @@ always @(posedge iVGA_CLK) begin
                     ball_dir_x <= 0;
             end
 
-            // SCORING (Passes Edge)
-            if (ball_x <= 0) begin
-                score_r <= score_r + 1; // Right scores
-                ball_x <= 320; ball_y <= 240; // Reset Ball
+            // ————————————— SCORING FIX —————————————
+            // 1. LEFT EXIT (Right Scores)
+            // If ball_x wraps around (e.g., 0 - 3 = 1021), it will be > 700.
+            if (ball_x > 700) begin
+                score_r <= score_r + 1; 
+                ball_x <= 320; ball_y <= 240; 
                 ball_dir_x <= 1; // Serve to winner
             end
+            // 2. RIGHT EXIT (Left Scores)
+            // Normal overflow: ball is greater than 640 but less than huge wrap-around
             else if (ball_x >= 640) begin
-                score_l <= score_l + 1; // Left scores
+                score_l <= score_l + 1; 
                 ball_x <= 320; ball_y <= 240;
                 ball_dir_x <= 0;
             end
@@ -124,14 +129,6 @@ end
 // ——————————————————————————————————————————————————
 // 3. SEVEN-SEGMENT SCORE RENDERER
 // ——————————————————————————————————————————————————
-// We map digits 0-9 to segments A,B,C,D,E,F,G (Standard 7-Seg)
-//   A
-// F   B
-//   G
-// E   C
-//   D
-
-// Helper Function: Decode Number to Segments
 function [6:0] get_segments;
     input [3:0] num;
     begin
@@ -154,8 +151,6 @@ endfunction
 wire [6:0] seg_l = get_segments(score_l);
 wire [6:0] seg_r = get_segments(score_r);
 
-// Function to check if current pixel (px, py) is in an active segment
-// Base Position (bx, by), Scale (s)
 function is_pixel_on;
     input [9:0] px, py, bx, by;
     input [6:0] seg;
@@ -163,20 +158,12 @@ function is_pixel_on;
     begin
         a = seg[6]; b = seg[5]; c = seg[4]; d = seg[3]; e = seg[2]; f = seg[1]; g = seg[0];
         is_pixel_on = 0;
-        
-        // Seg A (Top)
         if (a && px>=bx && px<=bx+20 && py>=by && py<=by+2) is_pixel_on=1;
-        // Seg B (Top Right)
         if (b && px>=bx+18 && px<=bx+20 && py>=by && py<=by+20) is_pixel_on=1;
-        // Seg C (Bot Right)
         if (c && px>=bx+18 && px<=bx+20 && py>=by+20 && py<=by+40) is_pixel_on=1;
-        // Seg D (Bot)
         if (d && px>=bx && px<=bx+20 && py>=by+38 && py<=by+40) is_pixel_on=1;
-        // Seg E (Bot Left)
         if (e && px>=bx && px<=bx+2 && py>=by+20 && py<=by+40) is_pixel_on=1;
-        // Seg F (Top Left)
         if (f && px>=bx && px<=bx+2 && py>=by && py<=by+20) is_pixel_on=1;
-        // Seg G (Mid)
         if (g && px>=bx && px<=bx+20 && py>=by+19 && py<=by+21) is_pixel_on=1;
     end
 endfunction
@@ -196,7 +183,6 @@ wire in_right_paddle = (x_pos >= 610 && x_pos < 620) && (y_pos >= paddle_r_y && 
 wire in_ball         = (x_pos >= ball_x && x_pos < ball_x + BALL_SIZE) && (y_pos >= ball_y && y_pos < ball_y + BALL_SIZE);
 
 // Score Pixels
-// Left Score Pos: (280, 50), Right Score Pos: (340, 50)
 wire score_pixel = is_pixel_on(x_pos, y_pos, 280, 50, seg_l) || 
                    is_pixel_on(x_pos, y_pos, 340, 50, seg_r);
 
