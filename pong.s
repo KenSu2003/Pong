@@ -1,177 +1,128 @@
-# ——————————————————————————————————————————————————————————————————————
-# PONG GAME - FINAL VERSION
-# ——————————————————————————————————————————————————————————————————————
-# MEMORY MAP:
-# 2000 : Keyboard Input (Read Only)
-# 3000 : VGA Ball X     (Write)
-# 3001 : VGA Ball Y     (Write)
-# 3002 : VGA Paddle L   (Write)
-# 3003 : VGA Paddle R   (Write)
-# ——————————————————————————————————————————————————————————————————————
+# PONG GAME - FIXED SPEED
+# ============================
+# $1 = Ball X
+# $2 = Ball Y
+# $3 = Ball Vel X
+# $4 = Ball Vel Y
+# $5 = Paddle L Y
+# $6 = Paddle R Y
+# $20 = Base Address for MMIO (2000)
 
 init:
-# 1. Setup Base Addresses
-addi    $20, $0, 2000       # Keyboard Address
-addi    $21, $0, 3000       # VGA Base Address
+# Setup MMIO Base
+addi    $20, $0, 2000       # Keyboard Address = 2000
 
-# 2. Setup Constants
-addi    $22, $0, 640        # Screen Width
-addi    $23, $0, 480        # Screen Height
-addi    $24, $0, 40         # Paddle Height
-addi    $25, $0, 3          # Paddle Speed
-addi    $29, $0, 440        # Paddle Max Y (480 - 40)
+# Init Positions
+addi    $1, $0, 320         # Ball X Center
+addi    $2, $0, 240         # Ball Y Center
+addi    $3, $0, 1           # Ball Vel X = 1
+addi    $4, $0, 1           # Ball Vel Y = 1
+addi    $5, $0, 200         # Pad L Y
+addi    $6, $0, 200         # Pad R Y
 
-# 3. Initialize Game State
-addi    $1, $0, 320         # Ball X
-addi    $2, $0, 240         # Ball Y
-addi    $3, $0, 1           # Ball Vel X (Start moving right)
-addi    $4, $0, 1           # Ball Vel Y (Start moving down)
-addi    $5, $0, 200         # Left Paddle Y
-addi    $6, $0, 200         # Right Paddle Y
+main_loop:
+# —————————————————————————————————
+# 1. READ KEYBOARD (Addr 2000)
+# —————————————————————————————————
+lw      $10, 0($20)         # Load Key Code
 
-# ——————————————————————————————————————————————————————————————————————
-# MAIN LOOP
-# ——————————————————————————————————————————————————————————————————————
-game_loop:
-
-# ——— INPUT HANDLING ———
-# Note: Your hardware holds the last key pressed. 
-# To stop moving, press SPACE (which sends 32/0x20).
-
-lw      $27, 0($20)         # Read Keyboard from Address 2000
-
-# 1. Check 'W' (Up Left) - 0x57 (Decimal 87)
-addi    $26, $0, 87
-bne     $27, $26, check_s
-sub     $5, $5, $25         # Paddle L Move Up
+# CHECK 'W' (Up Left) - 119
+addi    $11, $0, 119
+bne     $10, $11, check_s
+addi    $5, $5, -3          # Move Up
 j       clamp_paddles
 
 check_s:
-# 2. Check 'S' (Down Left) - 0x53 (Decimal 83)
-addi    $26, $0, 83
-bne     $27, $26, check_o
-add     $5, $5, $25         # Paddle L Move Down
+# CHECK 'S' (Down Left) - 115
+addi    $11, $0, 115
+bne     $10, $11, check_o
+addi    $5, $5, 3           # Move Down
 j       clamp_paddles
 
 check_o:
-# 3. Check 'O' (Up Right) - 0x4F (Decimal 79)
-addi    $26, $0, 79
-bne     $27, $26, check_k
-sub     $6, $6, $25         # Paddle R Move Up
+# CHECK 'O' (Up Right) - 111 (0x6F)
+addi    $11, $0, 111
+bne     $10, $11, check_l
+addi    $6, $6, -3
 j       clamp_paddles
 
-check_k:
-# 4. Check 'K' (Down Right) - 0x4B (Decimal 75)
-# Your hardware maps 0x4B, not 'L'
-addi    $26, $0, 75
-bne     $27, $26, clamp_paddles
-add     $6, $6, $25         # Paddle R Move Down
+check_l:
+# CHECK 'L' (Down Right) - 108 (0x6C)
+addi    $11, $0, 108
+bne     $10, $11, clamp_paddles
+addi    $6, $6, 3
 
-# ——— PADDLE CLAMPING (Top & Bottom) ———
 clamp_paddles:
-# Clamp Left Top
+# Keep Paddles on screen (0 to 440)
 blt     $5, $0, fix_l_top
-j       check_l_bot
+addi    $11, $0, 440
+blt     $11, $5, fix_l_bot
+j       check_r
 fix_l_top:
 addi    $5, $0, 0
-j       check_r_top
-
-check_l_bot:
-# Clamp Left Bottom (Y > 440)
-blt     $29, $5, fix_l_bot
-j       check_r_top
+j       check_r
 fix_l_bot:
 addi    $5, $0, 440
 
-check_r_top:
-# Clamp Right Top
+check_r:
 blt     $6, $0, fix_r_top
-j       check_r_bot
+addi    $11, $0, 440
+blt     $11, $6, fix_r_bot
+j       physics
 fix_r_top:
 addi    $6, $0, 0
-j       physics
-
-check_r_bot:
-# Clamp Right Bottom (Y > 440)
-blt     $29, $6, fix_r_bot
 j       physics
 fix_r_bot:
 addi    $6, $0, 440
 
-# ——— PHYSICS UPDATE ———
+# —————————————————————————————————
+# 2. PHYSICS (Ball Movement)
+# —————————————————————————————————
 physics:
-add     $1, $1, $3          # Ball X += Vel X
-add     $2, $2, $4          # Ball Y += Vel Y
+add     $1, $1, $3          # X += VX
+add     $2, $2, $4          # Y += VY
 
-# Y Collision (Top/Bottom Walls)
-blt     $2, $0, invert_y    # Top Wall
-blt     $23, $2, invert_y   # Bottom Wall (480)
-j       check_x_col
+# Y Collision (Top/Bottom)
+blt     $2, $0, bounce_y
+addi    $11, $0, 470
+blt     $11, $2, bounce_y
+j       check_x
 
-invert_y:
-sub     $4, $0, $4          # Negate Y Velocity
+bounce_y:
+sub     $4, $0, $4          # VY = -VY
 
-check_x_col:
-# X Collision (Paddles)
+check_x:
+# Simply bounce off walls for now (Testing Mode)
+# Later we add paddle checks here
+blt     $1, $0, bounce_x
+addi    $11, $0, 630
+blt     $11, $1, bounce_x
+j       update_vga
 
-# Left Zone (Ball X < 30)
-addi    $26, $0, 30
-blt     $1, $26, check_hit_left
+bounce_x:
+sub     $3, $0, $3          # VX = -VX
 
-# Right Zone (Ball X > 610)
-addi    $26, $0, 610
-blt     $26, $1, check_hit_right
+# —————————————————————————————————
+# 3. UPDATE VGA (Addr 3000+)
+# —————————————————————————————————
+update_vga:
+sw      $1, 1000($20)       # 3000: Ball X
+sw      $2, 1001($20)       # 3001: Ball Y
+sw      $5, 1002($20)       # 3002: Pad L
+sw      $6, 1003($20)       # 3003: Pad R
 
-j       check_reset         # Middle of screen
+# —————————————————————————————————
+# 4. HUGE DELAY LOOP
+# —————————————————————————————————
+# We use a nested loop to burn cycles
+addi    $30, $0, 100        # Outer Loop
+outer_delay:
+addi    $31, $0, 2000       # Inner Loop
+inner_delay:
+addi    $31, $31, -1
+bne     $31, $0, inner_delay # Spin inner
 
-check_hit_left:
-# Check if Ball Y is between PaddleY and PaddleY+40
-blt     $2, $5, check_reset      # Missed (Too high)
+addi    $30, $30, -1
+bne     $30, $0, outer_delay # Spin outer
 
-addi    $26, $5, 40
-blt     $26, $2, check_reset     # Missed (Too low)
-
-# HIT LEFT: Force Vel X Positive (1)
-addi    $3, $0, 1
-j       render
-
-check_hit_right:
-# Check if Ball Y is between PaddleY and PaddleY+40
-blt     $2, $6, check_reset      # Missed (Too high)
-
-addi    $26, $6, 40
-blt     $26, $2, check_reset     # Missed (Too low)
-
-# HIT RIGHT: Force Vel X Negative (-1)
-addi    $3, $0, -1
-j       render
-
-# ——— RESET LOGIC ———
-check_reset:
-# If Ball X < 0 or Ball X > 640, Reset
-blt     $1, $0, reset_ball
-blt     $22, $1, reset_ball
-j       render
-
-reset_ball:
-addi    $1, $0, 320
-addi    $2, $0, 240
-# Optional: Reset angle? For now keep velocity.
-
-# ——— RENDER ———
-render:
-sw      $1, 0($21)          # 3000: Ball X
-sw      $2, 1($21)          # 3001: Ball Y
-sw      $5, 2($21)          # 3002: Paddle L
-sw      $6, 3($21)          # 3003: Paddle R
-
-# ——— DELAY LOOP ———
-# Delay to approx 60 FPS (Depends on CPU Clock)
-addi    $26, $0, 1
-sll     $26, $26, 11        # Shift left to create large number (~2048)
-
-delay:
-addi    $26, $26, -1
-bne     $26, $0, delay
-
-j       game_loop
+j       main_loop
